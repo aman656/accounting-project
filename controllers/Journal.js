@@ -51,3 +51,58 @@ exports.createJournalEntry = async (req, res) => {
     res.status(500).send({ success: false, message: "An error occured." });
   }
 };
+
+
+exports.trialBalance = async(req,res)=>{
+  try{
+    const tAccounts = await db.tAccounts.aggregate([
+      {
+        "$project":{
+          account_name:1,
+          "credit":{
+            "$subtract":[{"$sum":"$credit"},{"$sum":"$debit"}]
+          },
+          "debit":{
+            "$subtract":[{"$sum":"$debit"},{"$sum":"$credit"}]
+        }}
+      }
+    ])
+
+    res.status(200).send({ success: true ,data:tAccounts});
+  }catch(err){
+    console.log(err);
+    res.status(500).send({ success: false, message: "An error occured." });
+  }
+}
+
+
+exports.incomeStatement =async(req,res)=>{
+  try{
+    let exp_arr=[]
+    let rev_arr =[]
+    const allAccounts = await db.tAccounts.aggregate([
+      {
+        "$project":{
+          account_name:1,
+          "credit":{
+            "$subtract":[{"$sum":"$credit"},{"$sum":"$debit"}]
+          },
+          "debit":{
+            "$subtract":[{"$sum":"$debit"},{"$sum":"$credit"}]
+        }}
+      }
+    ])
+
+    for(var i=0;i<tAccounts.length;i++){
+      if(tAccounts[i].account_name.includes("REVENUE")){
+        rev_arr.push({name:tAccounts[i].account_name,amount:tAccounts[i].credit>0 ? tAccounts[i].credit:tAccounts[i].debit})
+      }if(tAccounts[i].account_name.includes("EXPENSE")){
+        exp_arr.push({name:tAccounts[i].account_name,amount:tAccounts[i].credit>0 ? tAccounts[i].credit:tAccounts[i].debit})
+      }
+    }
+    res.status(200).send({ success: true,exp_arr,rev_arr});
+  }catch(err){
+    console.log(err);
+    res.status(500).send({ success: false, message: "An error occured." });
+  }
+}
