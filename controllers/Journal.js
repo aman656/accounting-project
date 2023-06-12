@@ -105,30 +105,44 @@ exports.incomeStatement =async(req,res)=>{
   try{
     let exp_arr=[]
     let rev_arr =[]
+    let total_rev=0
+    let total_exp = 0
     const allAccounts = await db.tAccounts.aggregate([
       {
         "$project":{
           account_name:1,
           account_type:1,
           "credit":{
-            "$subtract":[{"$sum":"$credit"},{"$sum":"$debit"}]
+            // "$subtract":[{"$sum":"$credit"},{"$sum":"$debit"}]
+            "$sum":"$credit"
           },
           "debit":{
-            "$subtract":[{"$sum":"$debit"},{"$sum":"$credit"}]
+            // "$subtract":[{"$sum":"$debit"},{"$sum":"$credit"}]
+            "$sum":"$debit"
         }}
+        //   "credit":{
+        //     "$subtract":[{"$sum":"$credit"},{"$sum":"$debit"}]
+        //   },
+        //   "debit":{
+        //     "$subtract":[{"$sum":"$debit"},{"$sum":"$credit"}]
+        // }}
       }
     ])
 
     for(var i=0;i<allAccounts.length;i++){
       if(allAccounts[i].account_name.includes("REVENUE")){
         if(!allAccounts[i].account_name.includes("UNEARNED")){
-        rev_arr.push({name:allAccounts[i].account_name,amount:allAccounts[i].credit>0 ? allAccounts[i].credit:allAccounts[i].debit})
+        rev_arr.push({name:allAccounts[i].account_name,amount:allAccounts[i].credit - allAccounts[i].debit})
+        total_rev+=allAccounts[i].credit - allAccounts[i].debit
+
       }
       }if(allAccounts[i].account_name.includes("EXPENSE")){
-        exp_arr.push({name:allAccounts[i].account_name,amount:allAccounts[i].credit>0 ? allAccounts[i].credit:allAccounts[i].debit})
+        exp_arr.push({name:allAccounts[i].account_name,amount:allAccounts[i].debit - allAccounts[i].credit})
+        total_exp+=allAccounts[i].debit - allAccounts[i].credit
+
       }
     }
-    res.status(200).send({ success: true,exp_arr,rev_arr});
+    res.status(200).send({ success: true,exp_arr,rev_arr,"netincome/loss":total_rev-total_exp});
   }catch(err){
     console.log(err);
     res.status(500).send({ success: false, message: "An error occured." });
