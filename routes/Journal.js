@@ -7,5 +7,11 @@ router.post("/journal", (req, res) => {
 router.post("/trial", (req, res) => {
   controllers.Journal.trialBalance(req, res);
 });
+router.post("/incomeStatement", (req, res) => {
+  controllers.Journal.incomeStatement(req, res);
+});
+router.post("/balanceSheet", (req, res) => {
+  controllers.Journal.balanceSheet(req, res);
+});
 
 module.exports = router;

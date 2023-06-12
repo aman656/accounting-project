@@ -6,6 +6,9 @@ const TaccountsSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    account_type:{
+      type:String,
+    },
     credit: {
       type: Array,
     },
