@@ -7,12 +7,12 @@ exports.createJournalEntry = async (req, res) => {
         debit: {
           amount: Number(req.body.debit.amount),
           account: req.body.debit.account.toUpperCase(),
-          account_type: req.body.debit.type
+          account_type: req.body.debit.account_type,
         },
         credit: {
           amount: Number(req.body.credit.amount),
           account: req.body.credit.account.toUpperCase(),
-          account_type: req.body.credit.type
+          account_type: req.body.credit.account_type,
         },
         statement: req.body.statement ? req.body.statement : null,
       })
@@ -166,9 +166,14 @@ exports.balanceSheet = async (req, res) => {
   try {
     let asset = 0;
     let liab = 0;
-    let equi = 5600;
+    let asset_array = [];
+    let equit_array = [];
+    let liab_array = [];
+    let equi = 0;
     var debit = 0;
     var credit = 0;
+    var total_rev = 0;
+    var total_exp = 0;
     const tAccounts = await db.tAccounts.aggregate([
       {
         $project: {
@@ -205,26 +210,94 @@ exports.balanceSheet = async (req, res) => {
         if (tAccounts[i].account_type == "asset") {
           if (tAccounts[i].debit == 0) {
             asset -= tAccounts[i].credit;
+            asset_array.push({
+              name: tAccounts[i].account_name,
+              credit: -tAccounts[i].credit,
+            });
           } else {
             asset += tAccounts[i].debit;
+            asset_array.push({
+              name: tAccounts[i].account_name,
+              debit: tAccounts[i].debit,
+            });
           }
         } else if (tAccounts[i].account_type == "liability") {
           if (tAccounts[i].credit == 0) {
             liab -= tAccounts[i].debit;
+            liab_array.push({
+              name: tAccounts[i].account_name,
+              debit: -tAccounts[i].debit,
+            });
           } else {
             liab += tAccounts[i].credit;
+            liab_array.push({
+              name: tAccounts[i].account_name,
+              credit: tAccounts[i].credit,
+            });
           }
         } else {
           if (tAccounts[i].credit == 0) {
             equi -= tAccounts[i].debit;
+            equit_array.push({
+              name: tAccounts[i].account_name,
+              debit: -tAccounts[i].debit,
+            });
           } else {
             equi += tAccounts[i].credit;
+            equit_array.push({
+              name: tAccounts[i].account_name,
+              credit: tAccounts[i].credit,
+            });
           }
         }
       }
     }
+    const allAccounts = await db.tAccounts.aggregate([
+      {
+        $project: {
+          account_name: 1,
+          account_type: 1,
+          credit: {
+            // "$subtract":[{"$sum":"$credit"},{"$sum":"$debit"}]
+            $sum: "$credit",
+          },
+          debit: {
+            // "$subtract":[{"$sum":"$debit"},{"$sum":"$credit"}]
+            $sum: "$debit",
+          },
+        },
+        //   "credit":{
+        //     "$subtract":[{"$sum":"$credit"},{"$sum":"$debit"}]
+        //   },
+        //   "debit":{
+        //     "$subtract":[{"$sum":"$debit"},{"$sum":"$credit"}]
+        // }}
+      },
+    ]);
 
-    res.status(200).send({ success: true, asset, liab, equi });
+    for (var i = 0; i < allAccounts.length; i++) {
+      if (allAccounts[i].account_name.includes("REVENUE")) {
+        if (!allAccounts[i].account_name.includes("UNEARNED")) {
+          total_rev += allAccounts[i].credit - allAccounts[i].debit;
+        }
+      }
+      if (allAccounts[i].account_name.includes("EXPENSE")) {
+        total_exp += allAccounts[i].debit - allAccounts[i].credit;
+      }
+    }
+    equit_array.push({
+      name: "net profit/loss",
+      credit: total_rev - total_exp,
+    });
+    res.status(200).send({
+      success: true,
+      asset,
+      liab,
+      equi: equi + (total_rev - total_exp),
+      asset_array,
+      equit_array,
+      liab_array,
+    });
   } catch (err) {
     console.log(err);
     res.status(500).send({ success: false, message: "An error occured." });
@@ -274,11 +347,13 @@ exports.ownerEquity = async (req, res) => {
       if (allAccounts[i].account_type == "owner equity") {
         equity_account.push(allAccounts[i]);
         equity += allAccounts[i].credit;
+        equity -= allAccounts[i].debit;
       }
     }
     equity_account.push({
       account_name: "Net Profit/Loss",
       credit: total_rev - total_exp,
+      debit: 0,
     });
     console.log("263", total_exp);
     console.log("264", total_rev);
