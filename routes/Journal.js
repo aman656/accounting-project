@@ -13,5 +13,7 @@ router.post("/incomeStatement", (req, res) => {
 router.post("/balanceSheet", (req, res) => {
   controllers.Journal.balanceSheet(req, res);
 });
-
+router.post("/equity", (req, res) => {
+  controllers.Journal.ownerEquity(req, res);
+});
 module.exports = router;
