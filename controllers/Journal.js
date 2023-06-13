@@ -5,12 +5,14 @@ exports.createJournalEntry = async (req, res) => {
     const data = await db
       .journal({
         debit: {
-          amount: req.body.debit.amount,
+          amount: Number(req.body.debit.amount),
           account: req.body.debit.account.toUpperCase(),
+          account_type: req.body.debit.type
         },
         credit: {
-          amount: req.body.credit.amount,
+          amount: Number(req.body.credit.amount),
           account: req.body.credit.account.toUpperCase(),
+          account_type: req.body.credit.type
         },
         statement: req.body.statement ? req.body.statement : null,
       })
@@ -19,13 +21,13 @@ exports.createJournalEntry = async (req, res) => {
       account_name: req.body.credit.account.toUpperCase(),
     });
     if (creditAccount) {
-      creditAccount.credit.push(req.body.credit.amount);
+      creditAccount.credit.push(Number(req.body.credit.amount));
       await creditAccount.save();
     } else {
       await db
         .tAccounts({
           account_name: req.body.credit.account.toUpperCase(),
-          credit: [req.body.credit.amount],
+          credit: [Number(req.body.credit.amount)],
           account_type: req.body.credit.type,
         })
         .save();
@@ -34,13 +36,13 @@ exports.createJournalEntry = async (req, res) => {
       account_name: req.body.debit.account.toUpperCase(),
     });
     if (debitAccount) {
-      debitAccount.debit.push(req.body.debit.amount);
+      debitAccount.debit.push(Number(req.body.debit.amount));
       await debitAccount.save();
     } else {
       await db
         .tAccounts({
           account_name: req.body.debit.account.toUpperCase(),
-          debit: [req.body.debit.amount],
+          debit: [Number(req.body.debit.amount)],
           account_type: req.body.debit.type,
         })
         .save();
