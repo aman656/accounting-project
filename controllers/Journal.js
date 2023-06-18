@@ -2,6 +2,7 @@ const db = require("../models");
 
 exports.createJournalEntry = async (req, res) => {
   try {
+    console.log(req.body);
     const data = await db
       .journal({
         debit: {
@@ -28,7 +29,7 @@ exports.createJournalEntry = async (req, res) => {
         .tAccounts({
           account_name: req.body.credit.account.toUpperCase(),
           credit: [Number(req.body.credit.amount)],
-          account_type: req.body.credit.type,
+          account_type: req.body.credit.account_type,
         })
         .save();
     }
@@ -43,7 +44,7 @@ exports.createJournalEntry = async (req, res) => {
         .tAccounts({
           account_name: req.body.debit.account.toUpperCase(),
           debit: [Number(req.body.debit.amount)],
-          account_type: req.body.debit.type,
+          account_type: req.body.debit.account_type,
         })
         .save();
     }
@@ -190,7 +191,7 @@ exports.balanceSheet = async (req, res) => {
         },
       },
     ]);
-
+    console.log(tAccounts);
     for (var i = 0; i < tAccounts.length; i++) {
       if (tAccounts[i].credit - tAccounts[i].debit > 0) {
         tAccounts[i].credit = tAccounts[i].credit - tAccounts[i].debit;
@@ -208,6 +209,7 @@ exports.balanceSheet = async (req, res) => {
     for (var i = 0; i < tAccounts.length; i++) {
       if (tAccounts[i].account_type) {
         if (tAccounts[i].account_type == "asset") {
+          console.log("asset");
           if (tAccounts[i].debit == 0) {
             asset -= tAccounts[i].credit;
             asset_array.push({
@@ -222,6 +224,7 @@ exports.balanceSheet = async (req, res) => {
             });
           }
         } else if (tAccounts[i].account_type == "liability") {
+          console.log("liabilty");
           if (tAccounts[i].credit == 0) {
             liab -= tAccounts[i].debit;
             liab_array.push({
@@ -236,6 +239,7 @@ exports.balanceSheet = async (req, res) => {
             });
           }
         } else {
+          console.log("owner equity");
           if (tAccounts[i].credit == 0) {
             equi -= tAccounts[i].debit;
             equit_array.push({
