@@ -2,7 +2,7 @@ const db = require("../models");
 
 exports.createJournalEntry = async (req, res) => {
   try {
-    console.log(req.body);
+    console.log("req.body",req.body);
     const data = await db
       .journal({
         debit: {
